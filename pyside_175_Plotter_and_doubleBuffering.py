@@ -1,7 +1,7 @@
 # coding: utf-8
 # author: wie@ppi.co.jp
 
-#topic/wie edits
+#topic/wie edits2
 
 
 from PySide import QtGui, QtCore
