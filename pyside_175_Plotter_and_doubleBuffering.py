@@ -2,8 +2,6 @@
 # author: wie@ppi.co.jp
 
 #topic/wie edits2
-
-
 # master edits2
 
 from PySide import QtGui, QtCore
