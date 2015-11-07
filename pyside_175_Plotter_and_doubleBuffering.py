@@ -1,13 +1,15 @@
 # coding: utf-8
 # author: wie@ppi.co.jp
+
+
 from PySide import QtGui, QtCore
 
 
 class Plotter(QtGui.QWidget):
     """Plotter and Double buffering examples"""
 
-    def __init__(self, *args, **kwargs):
-        super(Plotter, self).__init__(*args, **kwargs)
+    def __init__(self, parent=None):
+        super(Plotter, self).__init__(parent)
 
         self.zoomInButton
         self.zoomOutButton
