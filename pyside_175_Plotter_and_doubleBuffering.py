@@ -1,5 +1,6 @@
 # coding: utf-8
 # author: wie@ppi.co.jp
+import math
 from PySide import QtGui, QtCore
 
 
@@ -11,7 +12,8 @@ class Plotter(QtGui.QWidget):
     def __init__(self, *args, **kwargs):
         super(Plotter, self).__init__(*args, **kwargs)
 
-        self.curveMap = {}
+        self.curveMap = {1: [(0, 1), (1, 1), (3, 4)],
+                         2: [(4, 5), (8, 9), (10, 1)]}
         self.rubberBandRect = QtCore.QRect()
         self.pixmap = None
         # 참고로 윈도우기본색상은 QPalette.Window
@@ -29,13 +31,15 @@ class Plotter(QtGui.QWidget):
 
         # 여기선 버튼을 일부러 레이아웃에 넣지 않고 직접 관리한다.
         self.zoomInButton = QtGui.QToolButton(self)
-        self.zoomInButton.setIcon(QtGui.QIcon(':/images/zoomIn.png'))
+        self.zoomInButton.setText('+')
+        # self.zoomInButton.setIcon(QtGui.QIcon(':/images/zoomIn.png'))
         # 자신의 사이즈 힌트를 참고로 크기를 조정한다.
         self.zoomInButton.adjustSize()
         self.zoomInButton.clicked.connect(self.zoomIn)
 
         self.zoomOutButton = QtGui.QToolButton(self)
-        self.zoomOutButton.setIcon(QtGui.QIcon(':/images/zoomOut.png'))
+        self.zoomOutButton.setText('-')
+        # self.zoomOutButton.setIcon(QtGui.QIcon(':/images/zoomOut.png'))
         self.zoomOutButton.adjustSize()
         self.zoomOutButton.clicked.connect(self.zoomOut)
 
@@ -67,12 +71,11 @@ class Plotter(QtGui.QWidget):
 
     @QtCore.Slot()
     def zoomIn(self):
-        if self.curZoom < len(self.zoomStack) - 1:
-            self.curZoom += 1
-            self.zoomInButton.setEnabled(self.curZoom < len(self.zoomStack) - 1)
-            self.zoomOutButton.setEnabled(True)
-            self.zoomOutButton.show()
-            self.refreshPixmap()
+        self.curZoom += 1
+        self.zoomInButton.setEnabled(self.curZoom < len(self.zoomStack) - 1)
+        self.zoomOutButton.setEnabled(True)
+        self.zoomOutButton.show()
+        self.refreshPixmap()
 
     @QtCore.Slot()
     def zoomOut(self):
@@ -143,6 +146,7 @@ class Plotter(QtGui.QWidget):
             settings.maxY = prevSettings.maxY - dy * rect.top()
             settings.adjust()
 
+            self.zoomStack = self.zoomStack[:self.curZoom + 1]
             self.zoomStack.append(settings)
             self.zoomIn()
 
@@ -206,7 +210,7 @@ class Plotter(QtGui.QWidget):
         quiteDark = self.palette().dark().color()
         light = self.palette().light().color()
 
-        for i in range(settings.numXTicks):
+        for i in range(settings.numXTicks + 1):
             x = rect.left() + (i * (rect.width() - 1) / settings.numXTicks)
             label = settings.minX + (i * settings.spanX() / settings.numXTicks)
 
@@ -216,9 +220,9 @@ class Plotter(QtGui.QWidget):
             painter.drawLine(x, rect.bottom(), x, rect.bottom() + 5)
             painter.drawText(x - 50, rect.bottom() + 5, 100, 20,
                              QtCore.Qt.AlignHCenter | QtCore.Qt.AlignTop,
-                             unicode(label))
+                             unicode(round(label, 3)))
 
-        for j in range(settings.numYTicks):
+        for j in range(settings.numYTicks + 1):
             y = rect.bottom() - (j * (rect.height() - 1) / settings.numYTicks)
             label = settings.minY + (j * settings.spanY() / settings.numYTicks)
             painter.setPen(light)
@@ -226,13 +230,39 @@ class Plotter(QtGui.QWidget):
             # drawText 의 인자는 x, y, width, height, alignment, text
             painter.drawText(rect.left() - self.margin, y - 10, self.margin - 5, 20,
                              QtCore.Qt.AlignRight | QtCore.Qt.AlignVCenter,
-                             unicode(label))
+                             unicode(round(label, 3)))
 
         painter.drawRect(rect.adjusted(0, 0, -1, -1))
 
     def drawCurves(self, painter):
         colorForIds = [QtCore.Qt.red, QtCore.Qt.green, QtCore.Qt.blue,
                        QtCore.Qt.cyan, QtCore.Qt.magenta, QtCore.Qt.yellow]
+
+        settings = self.zoomStack[self.curZoom]
+
+        rect = QtCore.QRect(self.margin, self.margin,
+                            self.width() - 2 * self.margin,
+                            self.height() - 2 * self.margin)
+
+        if not rect.isValid():
+            return
+
+        painter.setClipRect(rect.adjusted(+1, +1, -1, -1))
+
+        for k, v in self.curveMap.iteritems():
+            _id = k
+            data = map(lambda (x, y): QtCore.QPointF(x, y), v)
+            polyline = QtGui.QPolygonF(len(data))
+
+            for j in range(len(data)):
+                dx = data[j].x() - settings.minX
+                dy = data[j].y() - settings.minY
+                x = rect.left() + (dx * (rect.width() - 1) / settings.spanX())
+                y = rect.bottom() - (dy * (rect.height() - 1) / settings.spanY())
+                polyline[j] = QtCore.QPointF(x, y)
+
+            painter.setPen(colorForIds[int(_id) % 6])
+            painter.drawPolyline(polyline)
 
 
 class PlotSettings:
@@ -246,10 +276,17 @@ class PlotSettings:
         self.numYTicks = 5
 
     def scroll(self, dx, dy):
-        pass
+        stepX = self.spanX() / self.numXTicks
+        self.minX += dx * stepX
+        self.maxX += dx * stepX
+
+        stepY = self.spanY() / self.numYTicks
+        self.minY += dy * stepY
+        self.maxY += dy * stepY
 
     def adjust(self):
-        pass
+        self.adjustAxis(self.minX, self.maxX, self.numXTicks)
+        self.adjustAxis(self.minY, self.maxY, self.numYTicks)
 
     def spanX(self):
         return self.maxX - self.minX
@@ -258,7 +295,22 @@ class PlotSettings:
         return self.maxY - self.minY
 
     def adjustAxis(self, _min, _max, numTicks):
-        pass
+        minTicks = 4
+        grossStep = (_max - _min) / minTicks
+        step = math.pow(10.0, math.floor(math.log10(grossStep)))
+
+        if 5 * step < grossStep:
+            step *= 5
+        elif 2 * step < grossStep:
+            step *= 2
+
+        numTicks = int(math.ceil(_max / step) - math.floor(_min / step))
+        if numTicks < minTicks:
+            numTicks = minTicks
+        _min = math.floor(_min / step) * step
+        _max = math.floor(_max / step) * step
+
+
 
 
 if __name__ == '__main__':
