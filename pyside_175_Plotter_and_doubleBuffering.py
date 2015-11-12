@@ -311,8 +311,6 @@ class PlotSettings:
         _max = math.floor(_max / step) * step
 
 
-
-
 if __name__ == '__main__':
     import sys
 
