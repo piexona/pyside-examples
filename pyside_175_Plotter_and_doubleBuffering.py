@@ -71,19 +71,22 @@ class Plotter(QtGui.QWidget):
 
     @QtCore.Slot()
     def zoomIn(self):
-        self.curZoom += 1
-        self.zoomInButton.setEnabled(self.curZoom < len(self.zoomStack) - 1)
-        self.zoomOutButton.setEnabled(True)
-        self.zoomOutButton.show()
-        self.refreshPixmap()
+        if self.curZoom + 1 < len(self.zoomStack):
+            print self.curZoom, len(self.zoomStack)
+            self.curZoom += 1
+            self.zoomInButton.setEnabled(self.curZoom < len(self.zoomStack) - 1)
+            self.zoomOutButton.setEnabled(True)
+            self.zoomOutButton.show()
+            self.refreshPixmap()
 
     @QtCore.Slot()
     def zoomOut(self):
-        self.curZoom -= 1
-        self.zoomOutButton.setEnabled(self.curZoom > 0)
-        self.zoomInButton.setEnabled(True)
-        self.zoomInButton.show()
-        self.refreshPixmap()
+        if self.curZoom > 0:
+            self.curZoom -= 1
+            self.zoomOutButton.setEnabled(self.curZoom > 0)
+            self.zoomInButton.setEnabled(True)
+            self.zoomInButton.show()
+            self.refreshPixmap()
 
     def paintEvent(self, event):
         # 미리 작성된 pixmap 을 위젯의 (0, 0)위치에 복사
