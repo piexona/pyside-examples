@@ -1,3 +1,6 @@
+# coding: utf-8
+# author: wie@ppi.co.jp
+
 if __name__ == '__main__':
     import sys
     from PySide import QtGui, QtCore
