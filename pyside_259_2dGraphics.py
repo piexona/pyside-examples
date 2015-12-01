@@ -3,6 +3,7 @@
 
 from PySide import QtGui, QtCore
 
+
 class Painter(QtGui.QWidget):
     def __init__(self, parent=None):
         super(Painter, self).__init__(parent=parent)
