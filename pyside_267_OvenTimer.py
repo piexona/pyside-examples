@@ -7,13 +7,13 @@ from PySide import QtGui, QtCore
 class OvenTimer(QtGui.QWidget):
     DegreesPerMinute = 7.0
     DegreesPerSecond = DegreesPerMinute / 60
-    MaxMinute = 45
-    MaxSeconds = MaxMinute * 60
+    MaxMinutes = 45
+    MaxSeconds = MaxMinutes * 60
     UpdateInterval = 5
 
     def __init__(self, parent=None):
         super(OvenTimer, self).__init__(parent=parent)
-        finishTime = QtCore.QDateTime.currentDateTime()
+        self.finishTime = QtCore.QDateTime.currentDateTime()
         self.updateTimer = QtCore.QTimer(self)
         self.updateTimer.timeout.connect(self.update)
         self.finishTimer = QtCore.QTimer(self)
@@ -88,11 +88,36 @@ class OvenTimer(QtGui.QWidget):
         painter.setPen(QtCore.Qt.NoPen)
         painter.setBrush(haloGradient)
         painter.drawEllipse(-20, -20, 40, 40)
+        # 눈금과 숫자를 그린다.
+        knobGradient = QtGui.QLinearGradient(-7, -25, 7, -25)
+        knobGradient.setColorAt(0.0, QtCore.Qt.black)
+        knobGradient.setColorAt(0.2, niceBlue)
+        knobGradient.setColorAt(0.3, QtCore.Qt.lightGray)
+        knobGradient.setColorAt(0.8, QtCore.Qt.white)
+        knobGradient.setColorAt(1.0, QtCore.Qt.black)
+        painter.rotate(self.duration() * self.DegreesPerSecond)
+        painter.setBrush(knobGradient)
+        painter.setPen(thinPen)
+        painter.drawRoundRect(-7, -25, 14, 50, 100, 49)
+        for i in range(self.MaxMinutes + 1):
+            # 회전변환을 반복하다보면 산술의 오차가 누적되어 점점 부정확하게 될 수 있다
+            # 그것을 피하기 위한 한 예로 여기서는 회전변환 전에 값을 기억시킨다.
+            painter.save()
+            painter.rotate(-i * self.DegreesPerMinute)
+            if i % 5 == 0:
+                painter.setPen(thickPen)
+                painter.drawLine(0, -41, 0, -44)
+                painter.drawText(-15, -41, 30, 30,
+                                 QtCore.Qt.AlignHCenter | QtCore.Qt.AlignTop,
+                                 str(i))
+            else:
+                painter.setPen(thinPen)
+                painter.drawLine(0, -42, 0, -44)
+            painter.restore()
 
 
     def timeout(self):
         print 'timeout'
-        pass
 
     def paintEvent(self, event):
         painter = QtGui.QPainter(self)
