@@ -115,7 +115,6 @@ class OvenTimer(QtGui.QWidget):
                 painter.drawLine(0, -42, 0, -44)
             painter.restore()
 
-
     def timeout(self):
         print 'timeout'
 
